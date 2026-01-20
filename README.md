@@ -181,7 +181,7 @@ We welcome contributions! If you have suggestions or want to improve Sewdohku, p
 
 **⭐ Star this repo if you find it helpful!**
 
-Made with ❤️ by [TIgor97](https://github.com/TIgor97)
+Made with ❤️ by [Teo](https://github.com/teodora-vuckovic2) and [TIgor97](https://github.com/TIgor97)
 
 </div>
 
