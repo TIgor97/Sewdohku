@@ -30,21 +30,8 @@ function setupSudoku(pipWindow) {
     };
 
     pipWindow.document.body.innerHTML = `YOUR ORIGINAL HTML TEMPLATE HERE (UNCHANGED)`; 
-    // ⬆️ IMPORTANT:
-    // Paste the EXACT innerHTML template from your original popup.js here.
-    // NOTHING inside that template needs to change.
-
-    /* ------------------------------------------------------------------ */
-    /* ---------------- EVERYTHING BELOW IS 100% ORIGINAL ---------------- */
-    /* ------------------------------------------------------------------ */
-
-    // (All your existing grid creation, controls, input handling,
-    // notes, undo, hints, solver, highlighting, win logic, etc.)
-
-    // ⬇️ Keep ALL of it exactly as you had it
-    // I am not pasting 900+ lines twice to avoid accidental corruption
-    // You already have this section working perfectly
 }
+
 function setupSudoku(pipWindow) {
     const colors = {
         '1': '#ff4d4d', '2': '#ff944d', '3': '#ffdb4d',
@@ -360,30 +347,27 @@ function setupSudoku(pipWindow) {
 
         const btn = pipWindow.document.querySelector(`.num-btn[data-num="${n}"]`);
         
-        if (placed >= 9) {
-            // BROJ JE ZAVRŠEN (9/9)
+        if (placed >= 9) { 
             btn.classList.add('done');
             btn.innerHTML = icons.check;
             
             cells.forEach(c => { 
-                if(!c.querySelector('.note-container') && c.innerText == n) {
-                    // Forsiramo boju iz "colors" objekta, čak i za hintove
+                if(!c.querySelector('.note-container') && c.innerText == n) { 
                     c.style.color = colors[n]; 
                 }
             });
-        } else {
-            // BROJ NIJE ZAVRŠEN
+        } else { 
             btn.classList.remove('done');
             btn.innerText = n;
             
             cells.forEach(c => { 
                 if(!c.querySelector('.note-container') && c.innerText == n) {
                     if (c.classList.contains('locked')) {
-                        c.style.color = "#7a889c"; // Fiksni brojevi
+                        c.style.color = "#7a889c"; 
                     } else if (c.classList.contains('hint-used')) {
-                        c.style.color = "#fbbf24"; // Hint ostaje žut dok ne skupiš svih 9
+                        c.style.color = "#fbbf24";  
                     } else {
-                        c.style.color = colors[n]; // Običan unos
+                        c.style.color = colors[n]; 
                     }
                 }
             });
@@ -445,8 +429,7 @@ function setupSudoku(pipWindow) {
     function updateHintUI() {
         const hintBtn = pipWindow.document.getElementById('hintBtn');
         hintBtn.setAttribute('title', `Hint (${hintCount}/3)`);
-        
-        // Opciono: Možeš promeniti boju dugmeta ako su hintovi potrošeni
+         
         if (hintCount >= 3) {
             hintBtn.style.opacity = "0.3";
             hintBtn.style.cursor = "not-allowed";
@@ -485,8 +468,7 @@ function setupSudoku(pipWindow) {
 
     pipWindow.document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key === 'z') { e.preventDefault(); handleUndo(); return; }
-    
-    // Dodato: H za Hint
+     
     if (e.key.toLowerCase() === 'h') {
         pipWindow.document.getElementById('hintBtn').click();
         return;
@@ -550,7 +532,7 @@ function setupSudoku(pipWindow) {
     };
 
     const numpad = pipWindow.document.getElementById('numpad');
-    numpad.innerHTML = ''; // Čistimo prethodne ako postoje
+    numpad.innerHTML = '';  
 
     Object.keys(colors).forEach(num => {
         const btn = pipWindow.document.createElement('button');
@@ -559,19 +541,16 @@ function setupSudoku(pipWindow) {
         btn.innerText = num;
         
         const mainColor = colors[num];
-
-        // Početni stil (puna boja)
+ 
         btn.style.backgroundColor = mainColor;
-        btn.style.color = (num === '9' || num === '3') ? '#0f172a' : '#1e293b'; // Tamniji tekst na svetlim bojama
-
-        // Hover logika bez glow-a
+        btn.style.color = (num === '9' || num === '3') ? '#0f172a' : '#1e293b';  
+ 
         btn.addEventListener('mouseenter', () => {
-            btn.style.backgroundColor = '#0f172a'; // Tamno plava kao body
+            btn.style.backgroundColor = '#0f172a'; 
             btn.style.color = mainColor;
             btn.style.borderColor = mainColor;
         });
-
-        // Reset na original
+ 
         btn.addEventListener('mouseleave', () => {
             btn.style.backgroundColor = mainColor;
             btn.style.color = (num === '9' || num === '3') ? '#0f172a' : '#1e293b';
