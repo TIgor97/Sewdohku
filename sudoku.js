@@ -17,6 +17,7 @@ function setupSudoku(pipWindow) {
     let accumulatedTime = 0;
     let timerInterval;
     let gameActive = true;
+    let hintCount = 0;
 
     const icons = {
         undo: `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M3 10h10a5 5 0 0 1 0 10H11M3 10l4-4M3 10l4 4"/></svg>`,
@@ -117,7 +118,7 @@ function setupSudoku(pipWindow) {
       
       .cell.locked { color: #7a889c; font-weight: 900; }
       .cell.error { background: rgba(239, 68, 68, 0.2) !important; }
-      .cell.hint-used { color: #fbbf24 !important; font-weight: 800; cursor: default; }
+      .cell.hint-used { color: #fbbf24; font-weight: 800; cursor: default; }
       
       .note-container {
         display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
@@ -166,14 +167,41 @@ function setupSudoku(pipWindow) {
         cursor: pointer; color: #38bdf8;
       }
 
-      .numpad { display: flex; gap: 6px; margin-top: 15px; }
-      .num-btn { 
-        width: 34px; height: 34px; border-radius: 50%; border: none;
-        cursor: pointer; font-weight: bold; font-size: 17px;
-        display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 3px 8px rgba(0,0,0,0.4); transition: 0.2s;
+      .numpad { 
+        display: flex; 
+        justify-content: space-between; /* Razvuče dugmiće da prate širinu grida */
+        width: 365px; /* Tačna širina tvog grida (9x40px + borderi) */
+        margin-top: 15px;
       }
-      .num-btn.done { opacity: 0.3; transform: scale(0.9); pointer-events: none; }
+
+      .num-btn { 
+        width: 34px; 
+        height: 34px; 
+        border-radius: 50%; 
+        border: 2px solid transparent; 
+        cursor: pointer; 
+        font-weight: 800; 
+        font-size: 16px;
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+        background-color: transparent;
+        transition: transform 0.2s ease, background 0.2s ease; /* Brza tranzicija */
+      }
+
+      .num-btn:hover {
+        background-color: #0f172a !important;  
+      }
+
+      .num-btn:active {
+        transform: translateY(0) scale(0.95);
+      }
+
+      .num-btn.done { 
+        opacity: 0.15; 
+        transform: scale(0.85);
+        pointer-events: none;
+      }
     </style>
 
     <div id="pauseOverlay">
@@ -273,6 +301,8 @@ function setupSudoku(pipWindow) {
 
         let clues = { "Easy": 36, "Medium": 30, "Hard": 25, "Expert": 21, "Extreme": 17 }[diff];
         let indices = Array.from({length: 81}, (_, i) => i).sort(() => Math.random() - 0.5);
+        hintCount = 0;  
+        updateHintUI();
         
         indices.slice(0, clues).forEach(idx => {
             cells[idx].innerHTML = solution[idx];
@@ -304,44 +334,70 @@ function setupSudoku(pipWindow) {
     };
 
     function checkErrors() {
-        cells.forEach(c => c.classList.remove('error'));
-        for (let i = 0; i < 81; i++) {
-            const val = cells[i].innerText;
-            if (!val || cells[i].querySelector('.note-container')) continue;
-            const r = Math.floor(i / 9), c = i % 9;
-            const bR = r - r % 3, bC = c - c % 3;
-            for (let j = 0; j < 81; j++) {
-                if (i === j) continue;
-                if (cells[j].innerText === val && (Math.floor(j/9) === r || j%9 === c || (Math.floor(j/9) >= bR && Math.floor(j/9) < bR + 3 && j%9 >= bC && j%9 < bC + 3))) {
-                    cells[i].classList.add('error');
-                    break;
+    cells.forEach((cell, i) => { 
+        cell.classList.remove('error');
+         
+        if (cell.innerText === "" || cell.classList.contains('locked') || cell.querySelector('.note-container')) {
+            return;
+        }
+ 
+        const userValue = parseInt(cell.innerText);
+        const correctValue = solution[i];
+
+        if (userValue !== correctValue) {
+            cell.classList.add('error');
+        }
+    });
+}
+
+    function checkCompletion() {
+    for (let n = 1; n <= 9; n++) {
+        const placed = cells.filter(c => 
+            !c.querySelector('.note-container') && 
+            c.innerText == n && 
+            !c.classList.contains('error')
+        ).length;
+
+        const btn = pipWindow.document.querySelector(`.num-btn[data-num="${n}"]`);
+        
+        if (placed >= 9) {
+            // BROJ JE ZAVRŠEN (9/9)
+            btn.classList.add('done');
+            btn.innerHTML = icons.check;
+            
+            cells.forEach(c => { 
+                if(!c.querySelector('.note-container') && c.innerText == n) {
+                    // Forsiramo boju iz "colors" objekta, čak i za hintove
+                    c.style.color = colors[n]; 
                 }
-            }
+            });
+        } else {
+            // BROJ NIJE ZAVRŠEN
+            btn.classList.remove('done');
+            btn.innerText = n;
+            
+            cells.forEach(c => { 
+                if(!c.querySelector('.note-container') && c.innerText == n) {
+                    if (c.classList.contains('locked')) {
+                        c.style.color = "#7a889c"; // Fiksni brojevi
+                    } else if (c.classList.contains('hint-used')) {
+                        c.style.color = "#fbbf24"; // Hint ostaje žut dok ne skupiš svih 9
+                    } else {
+                        c.style.color = colors[n]; // Običan unos
+                    }
+                }
+            });
         }
     }
 
-    function checkCompletion() {
-        for (let n = 1; n <= 9; n++) {
-            const placed = cells.filter(c => c.innerText == n && !c.classList.contains('error')).length;
-            const btn = pipWindow.document.querySelector(`.num-btn[data-num="${n}"]`);
-            if (placed >= 9) {
-                btn.classList.add('done');
-                btn.innerHTML = icons.check;
-                cells.forEach(c => { if(c.innerText == n) c.style.color = colors[n]; });
-            } else {
-                btn.classList.remove('done');
-                btn.innerText = n;
-                cells.forEach(c => { 
-                    if(c.innerText == n) {
-                        if (c.classList.contains('locked')) c.style.color = "#7a889c";
-                        else if (c.classList.contains('hint-used')) c.style.color = "#fbbf24";
-                        else c.style.color = colors[n];
-                    }
-                });
-            }
-        }
-        if (cells.every(c => c.innerText !== "" && !c.classList.contains('error'))) triggerWinSequence();
-    }
+    const isFinished = cells.every(c => 
+        c.innerText !== "" && 
+        !c.querySelector('.note-container') && 
+        !c.classList.contains('error')
+    );
+
+    if (isFinished) triggerWinSequence();
+}
 
     function triggerWinSequence() {
         gameActive = false;
@@ -386,6 +442,37 @@ function setupSudoku(pipWindow) {
         });
     }
 
+    function updateHintUI() {
+        const hintBtn = pipWindow.document.getElementById('hintBtn');
+        hintBtn.setAttribute('title', `Hint (${hintCount}/3)`);
+        
+        // Opciono: Možeš promeniti boju dugmeta ako su hintovi potrošeni
+        if (hintCount >= 3) {
+            hintBtn.style.opacity = "0.3";
+            hintBtn.style.cursor = "not-allowed";
+        } else {
+            hintBtn.style.opacity = "1";
+            hintBtn.style.cursor = "pointer";
+        }
+    }
+
+    pipWindow.document.getElementById('hintBtn').onclick = () => {
+        if (hintCount < 3 && activeCell && !activeCell.classList.contains('locked') && !activeCell.classList.contains('hint-used') && gameActive) {
+            const idx = parseInt(activeCell.dataset.index);
+            saveState();
+            activeCell.innerHTML = solution[idx];
+            activeCell.classList.add('hint-used');
+            activeCell.classList.remove('error');
+            
+            hintCount++;
+            updateHintUI();
+            
+            checkErrors();
+            checkCompletion();
+            refreshHighlights();
+        }
+    };
+
     for (let i = 0; i < 81; i++) {
         const cell = pipWindow.document.createElement('div');
         cell.className = 'cell';
@@ -397,34 +484,50 @@ function setupSudoku(pipWindow) {
     }
 
     pipWindow.document.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.key === 'z') { e.preventDefault(); handleUndo(); return; }
-        if (!activeCell || !gameActive) return;
-        let idx = parseInt(activeCell.dataset.index);
-        if (e.key === "ArrowUp" && idx >= 9) cells[idx - 9].focus();
-        else if (e.key === "ArrowDown" && idx <= 71) cells[idx + 9].focus();
-        else if (e.key === "ArrowLeft" && idx % 9 !== 0) cells[idx - 1].focus();
-        else if (e.key === "ArrowRight" && idx % 9 !== 8) cells[idx + 1].focus();
-        else if (e.key.toLowerCase() === 'n') { notesMode = !notesMode; notesBtn.classList.toggle('active'); }
-        else if (/^[1-9]$/.test(e.key)) {
-            if (!activeCell.classList.contains('locked') && !activeCell.classList.contains('hint-used')) {
-                saveState();
-                if (notesMode) {
-                    if (!activeCell.querySelector('.note-container')) activeCell.innerHTML = `<div class="note-container">${Array(9).fill('<div class="note-digit"></div>').join('')}</div>`;
-                    const target = activeCell.querySelectorAll('.note-digit')[parseInt(e.key) - 1];
-                    target.innerText = target.innerText === e.key ? "" : e.key;
-                } else {
-                    activeCell.innerHTML = (activeCell.innerText === e.key) ? "" : e.key;
+    if (e.ctrlKey && e.key === 'z') { e.preventDefault(); handleUndo(); return; }
+    
+    // Dodato: H za Hint
+    if (e.key.toLowerCase() === 'h') {
+        pipWindow.document.getElementById('hintBtn').click();
+        return;
+    }
+
+    if (!activeCell || !gameActive) return;
+    let idx = parseInt(activeCell.dataset.index);
+
+    if (e.key === "ArrowUp" && idx >= 9) cells[idx - 9].focus();
+    else if (e.key === "ArrowDown" && idx <= 71) cells[idx + 9].focus();
+    else if (e.key === "ArrowLeft" && idx % 9 !== 0) cells[idx - 1].focus();
+    else if (e.key === "ArrowRight" && idx % 9 !== 8) cells[idx + 1].focus();
+    else if (e.key.toLowerCase() === 'n') { 
+        notesMode = !notesMode; 
+        notesBtn.classList.toggle('active'); 
+    }
+    else if (/^[1-9]$/.test(e.key)) {
+        if (!activeCell.classList.contains('locked') && !activeCell.classList.contains('hint-used')) {
+            saveState();
+            if (notesMode) { 
+                if (!activeCell.querySelector('.note-container')) activeCell.innerHTML = `<div class="note-container">${Array(9).fill('<div class="note-digit"></div>').join('')}</div>`;
+                const target = activeCell.querySelectorAll('.note-digit')[parseInt(e.key) - 1];
+                target.innerText = target.innerText === e.key ? "" : e.key;
+            } else { 
+                const isNote = activeCell.querySelector('.note-container');
+                if (isNote || activeCell.innerText !== e.key) {
+                    activeCell.innerHTML = e.key;
                     activeCell.style.color = colors[e.key];
+                } else {
+                    activeCell.innerHTML = "";
                 }
-                checkErrors(); refreshHighlights(); checkCompletion();
             }
+            checkErrors(); refreshHighlights(); checkCompletion();
         }
-        else if (e.key === "Backspace" || e.key === "Delete") {
-            if (!activeCell.classList.contains('locked') && !activeCell.classList.contains('hint-used')) { 
-                saveState(); activeCell.innerHTML = ""; checkErrors(); refreshHighlights(); checkCompletion(); 
-            }
+    }
+    else if (e.key === "Backspace" || e.key === "Delete") {
+        if (!activeCell.classList.contains('locked') && !activeCell.classList.contains('hint-used')) { 
+            saveState(); activeCell.innerHTML = ""; checkErrors(); refreshHighlights(); checkCompletion(); 
         }
-    });
+    }
+});
 
     pipWindow.document.getElementById('undoBtn').onclick = handleUndo;
     pipWindow.document.getElementById('newGameBtn').onclick = () => { overlay.style.display = 'flex'; };
@@ -447,26 +550,56 @@ function setupSudoku(pipWindow) {
     };
 
     const numpad = pipWindow.document.getElementById('numpad');
+    numpad.innerHTML = ''; // Čistimo prethodne ako postoje
+
     Object.keys(colors).forEach(num => {
         const btn = pipWindow.document.createElement('button');
         btn.className = 'num-btn';
         btn.dataset.num = num;
         btn.innerText = num;
-        btn.style.backgroundColor = num === '9' ? '#000000' : colors[num];
-        btn.style.color = num === '9' ? '#ffffff' : '#1e293b';
+        
+        const mainColor = colors[num];
+
+        // Početni stil (puna boja)
+        btn.style.backgroundColor = mainColor;
+        btn.style.color = (num === '9' || num === '3') ? '#0f172a' : '#1e293b'; // Tamniji tekst na svetlim bojama
+
+        // Hover logika bez glow-a
+        btn.addEventListener('mouseenter', () => {
+            btn.style.backgroundColor = '#0f172a'; // Tamno plava kao body
+            btn.style.color = mainColor;
+            btn.style.borderColor = mainColor;
+        });
+
+        // Reset na original
+        btn.addEventListener('mouseleave', () => {
+            btn.style.backgroundColor = mainColor;
+            btn.style.color = (num === '9' || num === '3') ? '#0f172a' : '#1e293b';
+            btn.style.borderColor = 'transparent';
+        });
+
         btn.onmousedown = (e) => {
             e.preventDefault();
             if (activeCell && !activeCell.classList.contains('locked') && !activeCell.classList.contains('hint-used') && gameActive) {
                 saveState();
                 if (notesMode) {
-                    if (!activeCell.querySelector('.note-container')) activeCell.innerHTML = `<div class="note-container">${Array(9).fill('<div class="note-digit"></div>').join('')}</div>`;
+                    if (!activeCell.querySelector('.note-container')) {
+                        activeCell.innerHTML = `<div class="note-container">${Array(9).fill('<div class="note-digit"></div>').join('')}</div>`;
+                    }
                     const target = activeCell.querySelectorAll('.note-digit')[parseInt(num) - 1];
                     target.innerText = target.innerText === num ? "" : num;
-                } else {
-                    activeCell.innerHTML = (activeCell.innerText === num) ? "" : num;
-                    activeCell.style.color = colors[num];
+                } else { 
+                    const isNote = activeCell.querySelector('.note-container');
+                    if (isNote || activeCell.innerText !== num) {
+                        activeCell.innerHTML = num;
+                        activeCell.style.color = colors[num];
+                    } else {
+                        activeCell.innerHTML = "";
+                    }
                 }
-                checkErrors(); refreshHighlights(); checkCompletion();
+                checkErrors(); 
+                refreshHighlights(); 
+                checkCompletion();
             }
         };
         numpad.appendChild(btn);
