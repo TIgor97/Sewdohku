@@ -166,10 +166,6 @@ We welcome contributions! If you have suggestions or want to improve Sewdohku, p
 5.  **Push to your branch** (`git push origin feature/your-feature-name`).
 6.  **Open a Pull Request** to the `main` branch of this repository.
 
-## 📄 License
-
-This project is licensed under [LICENSE_NAME] - see the [LICENSE](LICENSE) file for details. <!-- TODO: Add a LICENSE file with chosen license (e.g., MIT, Apache 2.0) -->
-
 ## 🙏 Acknowledgments
 
 -   The original concept of Sudoku for timeless entertainment.
