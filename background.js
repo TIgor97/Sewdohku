@@ -21,8 +21,8 @@ function openSudoku() {
     {
       url: chrome.runtime.getURL("sudoku.html"),
       type: "popup",
-      width: 410,
-      height: 530
+      width: 450,
+      height: 580
     },
     win => {
       sudokuWindowId = win.id;
